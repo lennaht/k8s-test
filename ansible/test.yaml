@@ -1,0 +1,13 @@
+- hosts: hosts
+  tasks:
+    - name: Env test
+      environment:
+        LOL: 'LELELE'
+      shell: 'echo $LOL'
+      register: nodes
+    - name: Print env
+      debug:
+        var: nodes
+    - name: Print first private ip
+      debug:
+        msg: '{{ hostvars[groups["hosts"][0]].private_ipv4_addresses[0] }}'

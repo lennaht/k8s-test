@@ -1,0 +1,10 @@
+vars:
+  ansible_python_interpreter: /usr/bin/python3
+  ansible_user: azure
+plugin: azure_rm
+include_vm_resource_groups:
+  - kubernetes-test
+auth_source: cli
+plain_host_names: yes
+conditional_groups:
+  hosts: true

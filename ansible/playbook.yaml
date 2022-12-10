@@ -1,0 +1,52 @@
+- hosts: all
+  vars:
+    - k3s_path: '/etc/rancher/k3s'
+  tasks:
+    - name: Ensure k3s directory exists
+      file:
+        path: '{{ k3s_path }}'
+        state: directory
+    - name: Copy k3s config file to host
+      copy:
+        src: '{{ playbook_dir }}/k3s_config.yaml'
+        dest: '{{ k3s_path }}/config.yaml'
+- hosts: all[0]
+  vars:
+    public_ip: '{{ hostvars[inventory_hostname]["ansible_default_ipv4"]["address"] }}'
+  tasks:
+    - name: Install and run k3s using official script
+      environment:
+        INSTALL_K3S_EXEC: '--tls-san {{ public_ip }}'
+      shell: 'curl -sfL https://get.k3s.io | sh -s - server --cluster-init'
+    - name: Show kubectl nodes for debugging purposes
+      shell: 'kubectl get nodes'
+      register: nodes
+    - name: Show kubectl output
+      debug:
+        var: nodes
+    - name: Copy k8s token to controller
+      fetch:
+        src: '/var/lib/rancher/k3s/server/token'
+        dest: '{{ playbook_dir }}/'
+        flat: yes
+    - name: Copy k3s.yaml to controller
+      fetch:
+        src: '/etc/rancher/k3s/k3s.yaml'
+        dest: '{{ playbook_dir }}/'
+        flat: yes
+- hosts: all[1:]
+  vars:
+    token: '{{ lookup("file", "token") }}'
+    server_private_ip: '{{ hostvars[groups["hosts"][0]].private_ipv4_addresses[0] }}'
+  tasks:
+    - name: Install k3s and connect to new cluster
+      environment:
+        K3S_TOKEN: '{{ token }}'
+        K3S_URL: 'https://{{ server_private_ip }}:6443'
+      shell: 'curl -sfL https://get.k3s.io | sh -s - -server'
+    - name: Show kubectl nodes for debugging purposes
+      shell: 'kubectl get nodes'
+      register: nodes
+    - name: Show kubectl output
+      debug:
+        var: nodes

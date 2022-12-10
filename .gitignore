@@ -1,0 +1,7 @@
+token
+id_rsa
+k3s.yaml
+.terraform*
+plan
+inventory.ini
+*.tfstate*
